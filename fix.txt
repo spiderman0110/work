@@ -32,3 +32,463 @@ If WScript.Arguments.Count = 0 Then
 End If
 
 WScript.Quit(True)
+
+
+
+DiffReport.docm
+
+標準モジュール
+constants
+
+'====== 構造体 ======
+'Globally Unique Identifier構造体
+Public Type GUID
+    Data1 As Long
+    Data2 As Integer
+    Data3 As Integer
+    Data4(0 To 7) As Byte
+End Type
+
+'Picture Descriptor構造体 MSDN(Eng)参照
+Public Type PICTDESC
+    cbSizeofstruct As Long
+    picType As Long
+    hBitmap As Long
+    hpal As Long
+    unused_wmf_yExt As Long
+End Type
+
+Public Type RECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+
+Public Type METAFILEPICT
+    mm As Long
+    xExt As Long
+    yExt As Long
+    hmf As Long
+End Type
+
+Public Type RECTL
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+Public Type SIZEL
+    cx As Long
+    cy As Long
+End Type
+
+Type BITMAPINFOHEADER
+    biSize As Long              'ヘッダーのサイズ
+    biWidth As Long             '幅(ピクセル単位)
+    biHeight As Long            '高さ(ピクセル単位)
+    biPlanes As Integer         '常に１
+    biBitCount As Integer       '1ピクセルあたりのカラービット数
+    biCompression As Long       '圧縮方法
+    biSizeImage As Long         'ピクセルデータの全バイト数
+    biXPelsPerMeter As Long     '0または水平解像度
+    biYPelsPerMeter As Long     '0または垂直解像度
+    biClrUsed As Long           '通常は0
+    biClrImportant As Long      '通常は0
+End Type
+
+Type RGBQUAD
+    rgbBlue As Byte             '青の濃さ
+    rgbGreen As Byte            '緑の濃さ
+    rgbRed As Byte              '赤の濃さ
+    rgbReserved As Byte         '未使用(常に0)
+End Type
+
+Type BITMAPINFO
+    bmiHeader As BITMAPINFOHEADER
+    bmiColors As RGBQUAD
+End Type
+
+Public Type ENHMETAHEADER
+    iType As Long
+    nSize As Long
+    rclBounds As RECTL
+    rclFrame As RECTL '0.01mm単位
+    dSignature As Long
+    nVersion As Long
+    nBytes As Long
+    nRecords As Long
+    nHandles As Integer
+    sReserved As Integer
+    nDescription As Long
+    offDescription As Long
+    nPalEntries As Long
+    szlDevice As SIZEL
+    szlMillimeters As SIZEL
+End Type
+
+''====== API ======
+'Public Declare Function GetActiveWindow Lib "user32.dll" () As Long
+'Public Declare Function GetLastError Lib "kernel32" () As Long
+Public Declare Function GetEnhMetaFile Lib "gdi32" Alias "GetEnhMetaFileA" (ByVal lpszMetaFile As String) As Long
+'Public Declare Function GetMetaFile Lib "gdi32" Alias "GetMetaFileA" (ByVal lpFileName As String) As Long
+'Public Declare Function GetMetaFileBitsEx Lib "gdi32" (ByVal hmf As Long, ByVal nSize As Long, lpvData As Any) As Long
+'Public Declare Function SetWinMetaFileBits Lib "gdi32" (ByVal cbBuffer As Long, lpbBuffer As Byte, ByVal hdcRef As Long, lpmfp As METAFILEPICT) As Long
+Public Declare Function PlayEnhMetaFile Lib "gdi32" (ByVal hdc As Long, ByVal hEmf As Long, lpRect As RECT) As Long
+'Public Declare Function SetWinMetaFileBitsByNull Lib "gdi32" Alias "SetWinMetaFileBits" (ByVal cbBuffer As Long, lpbBuffer As Byte, ByVal hdcRef As Long, lpmfp As Long) As Long
+Public Declare Function DeleteEnhMetaFile Lib "gdi32" (ByVal hEmf As Long) As Long
+Public Declare Function GetEnhMetaFileHeader Lib "gdi32" (ByVal hEmf As Long, ByVal MetaHeaderSize As Long, ByRef MetaHeader As ENHMETAHEADER) As Long
+Public Declare Function CreateDIBSection Lib "gdi32.dll" (ByVal hdc As Long, pbmi As BITMAPINFO, ByVal iUsage As Long, ppvBits As Long, ByVal hSection As Long, ByVal dwOffset As Long) As Long
+'Public Declare Function CreateCompatibleBitmap Lib "gdi32" (ByVal hdc As Long, ByVal nWidth As Long, ByVal nHeight As Long) As Long
+Public Declare Function CreateCompatibleDC Lib "gdi32" (ByVal hdc As Long) As Long
+Public Declare Function DeleteDC Lib "gdi32" (ByVal hdc As Long) As Long
+Public Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
+Public Declare Function GetDC Lib "user32" (ByVal hwnd As Long) As Long
+Public Declare Function OleCreatePictureIndirect Lib "olepro32" (lpPictDesc As PICTDESC, riid As GUID, ByVal fOwn As Long, lplpvObj As Object) As Long
+Public Declare Function SelectObject Lib "gdi32" (ByVal hdc As Long, ByVal hgdiobj As Long) As Long
+'Public Declare Function ReleaseDC Lib "user32" (ByVal hwnd As Long, ByVal hdc As Long) As Long
+Public Declare Function OpenClipboard Lib "user32" (ByVal hWndNewOwner As Long) As Long
+Public Declare Function CloseClipboard Lib "user32" () As Long
+Public Declare Function GetClipboardData Lib "user32" (ByVal uFormat As Long) As Long
+Public Declare Function SetClipboardData Lib "user32" (ByVal wFormat As Long, ByVal hMem As Long) As Long
+Public Declare Function CopyEnhMetaFile Lib "gdi32" Alias "CopyEnhMetaFileA" (ByVal hemfSrc As Long, ByVal lpszFile As String) As Long
+Public Declare Function SetPixelV Lib "gdi32" (ByVal hdc As Long, ByVal x As Long, ByVal y As Long, ByVal crColor As Long) As Long
+Public Declare Function GetDIBits Lib "gdi32" (ByVal aHDC As Long, ByVal hBitmap As Long, ByVal nStartScan As Long, ByVal nNumScans As Long, lpBits As Any, lpBI As BITMAPINFO, ByVal wUsage As Long) As Long
+Public Declare Function CreatePen Lib "gdi32.dll" (ByVal fnPenStyle As Long, ByVal nWidth As Long, ByVal crColor As Long) As Integer
+Public Declare Function GetStockObject Lib "gdi32" (ByVal nIndex As Long) As Long
+Public Declare Function Rectangle Lib "gdi32" (ByVal hdc As Long, ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As Long
+                                                
+'====== 定数 ======
+Public Const PICTYPE_BITMAP = 1    'pictdescに与えるpictureのタイプ
+Public Const DIB_RGB_COLORS = 0&
+Public Const CF_ENHMETAFILE = 14
+Public Const PICTYPE_ENHMETAFILE = 4
+
+
+diff
+
+Option Explicit
+
+Public Sub diffReport()
+
+    Dim FSO As Object
+    Dim fo As Object
+    
+    Dim docAsis As Document
+    Dim docTobe As Document
+    Dim dirAsis As String
+    Dim dirTobe As String
+    Dim dirDiff As String
+    Dim fileNameAsis As String
+    Dim fileNameTobe As String
+    Dim folderObj As Object
+    Dim files() As String
+    Dim i As Long
+    Dim shObj As Object
+    Dim caseNo As String
+    Dim winMergeExe As String
+    
+    Application.ScreenUpdating = False
+    
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    
+    dirTobe = Left(ThisDocument.Path, InStrRev(ThisDocument.Path, "\") - 1) & "\1_Report_Tobe\"
+    dirAsis = Left(ThisDocument.Path, InStrRev(ThisDocument.Path, "\") - 1) & "\2_Report_Asis\"
+    dirDiff = Left(ThisDocument.Path, InStrRev(ThisDocument.Path, "\") - 1) & "\3_Report_Diff\"
+    winMergeExe = ThisDocument.Path & "\WinMerge_" & IIf(is64BitPC, "2.14_64", "2.16_32") & "\WinMergeU.exe"
+    
+    '■DOCの比較と画像の取得
+    Set folderObj = FSO.GetFolder(dirAsis)
+    ReDim Preserve files(folderObj.files.Count - 1)
+    For Each fo In folderObj.files
+        If Right(fo.Name, 5) = ".docx" Then
+            files(i) = fo.Name
+            i = i + 1
+        End If
+    Next fo
+    Call sortAsc(files)
+    
+    For i = 0 To UBound(files)
+    
+        fileNameAsis = files(i)
+        fileNameTobe = getTobereport(dirTobe, fileNameAsis)
+        If fileNameTobe = "" Then GoTo Continue
+        
+        If fileNameAsis <> fileNameTobe Then
+            'TobeフォルダのDOCをASISと同名にしてコピー
+            FileCopy dirTobe & fileNameTobe, dirTobe & fileNameAsis
+        End If
+        
+        caseNo = Split(fileNameAsis, "_")(0)
+        
+        'DOC内のオブジェクトを画像として保存
+        If FSO.FolderExists(dirAsis & "\Img\") = False Then FSO.CreateFolder (dirAsis & "\Img\")
+        Set docAsis = Application.Documents.Open(dirAsis & fileNameAsis)
+        Call savePipture(docAsis, dirAsis & "\Img\", caseNo)
+        Call docPageToBMP(docAsis, caseNo, FSO)
+        docAsis.Close False
+        
+        If FSO.FolderExists(dirTobe & "\Img\") = False Then FSO.CreateFolder (dirTobe & "\Img\")
+        Set docTobe = Application.Documents.Open(dirTobe & fileNameTobe)
+        Call savePipture(docTobe, dirTobe & "\Img\", caseNo)
+        Call docPageToBMP(docTobe, caseNo, FSO)
+        docTobe.Close False
+Continue:
+    Next i
+    
+    'Winmergeでフォルダごと差異を比較
+    'MsgBox winMergeExe & " """ & dirAsis & """ """ & dirTobe & _
+    '            """ -noprefs -x -r -u -or """ & dirDiff & "DiffResult.html""", vbOKOnly, "Winmergeコマンド"
+    Set shObj = CreateObject("WScript.Shell")
+    shObj.Run winMergeExe & " """ & dirAsis & """ """ & dirTobe & _
+                """ -noprefs -x -r -u -or """ & dirDiff & "DiffResult.html""", 1, False
+                
+    Set FSO = Nothing
+    Application.StatusBar = ""
+    'MsgBox "比較完了！"
+
+End Sub
+
+'Asisのレポートに対応するファイルをTobeのディレクトリから取得
+Private Function getTobereport(dirTobe As String, fileNameAsis As String) As String
+    getTobereport = Dir(dirTobe & Left(fileNameAsis, 4) & "*.docx")
+End Function
+
+'昇順ソート
+Private Sub sortAsc(ByRef targetArray() As String)
+    Dim iNow As Integer
+    Dim iBefore As Integer
+    Dim temp As String
+    Dim iArrayCount As Integer
+    
+    iArrayCount = UBound(targetArray)
+    
+    For iNow = 1 To iArrayCount
+        temp = targetArray(iNow)
+        iBefore = iNow - 1
+        Do
+            If (iBefore < 0) Then Exit Do
+            If (targetArray(iBefore) <= temp) Then Exit Do
+            targetArray(iBefore + 1) = targetArray(iBefore)
+            iBefore = iBefore - 1
+        Loop
+        targetArray(iBefore + 1) = temp
+    Next
+End Sub
+
+'doc内のオブジェクトをビットマップ画像として保存
+Public Sub savePipture(trgDoc As Document, savePath As String, caseNo As String)
+    Dim i As Long
+    Dim ilsh As InlineShape
+    
+    i = 1
+    For Each ilsh In trgDoc.InlineShapes
+        Call getPicture(ilsh, savePath & "\Image_" & caseNo & "_" & Format(i, "000") & ".bmp")
+        i = i + 1
+    Next
+End Sub
+
+'doc内のオブジェクトをビットマップ画像として保存
+Private Sub getPicture(ilsh As InlineShape, fileName As String)
+    Dim hbmp As Long
+    Dim hbmpOld As Long
+    Dim hdc As Long, hdcDesktop As Long
+    Dim hEmf As Long '拡張メタファイルのハンドル
+    Dim r As RECT '描画する領域
+    Dim strFileName As String
+    Dim mh As ENHMETAHEADER '取得結果のメタファイルヘッダ
+    Dim emfWidth As Long, emfHeight As Long
+    Dim bmpInfo As BITMAPINFO
+    Dim pic As StdPicture 'Pictureプロパティのデータ型
+    Dim hDIB As Long
+    
+    'オブジェクトを選択してクリップボードにコピー
+    ilsh.Select
+    Selection.Copy
+        
+    If OpenClipboard(0) Then
+        hEmf = GetClipboardData(CF_ENHMETAFILE)
+        'ハンドルを複製してから使用する
+        hEmf = CopyEnhMetaFile(hEmf, vbNullString)
+        CloseClipboard
+    End If
+    If hEmf = 0 Then
+        MsgBox "emf取得に失敗"
+        Exit Sub
+    End If
+    'ヘッダの取得
+    GetEnhMetaFileHeader hEmf, Len(mh), mh
+    With mh
+        emfWidth = .rclBounds.Right - .rclBounds.Left
+        emfHeight = .rclBounds.Bottom - .rclBounds.Top
+    End With
+    
+    hdcDesktop = GetDC(0)
+    hdc = CreateCompatibleDC(hdcDesktop)
+    
+    With bmpInfo.bmiHeader '構造体初期化
+        .biSize = 40
+        .biWidth = emfWidth
+        .biHeight = emfHeight
+        .biPlanes = 1
+        .biBitCount = 24    '24ビット
+        .biCompression = 0  'BI_RGB
+        .biSizeImage = 0    'BI_RGBの時は0
+        .biClrUsed = 0
+    End With
+    
+    hbmp = CreateDIBSection(hdc, bmpInfo, DIB_RGB_COLORS, 0, 0, 0) 'DIB作成
+    hbmpOld = SelectObject(hdc, hbmp)
+    
+    '描画領域の設定
+    r.Left = 0
+    r.Top = 0
+    r.Right = emfWidth
+    r.Bottom = emfHeight
+    
+    '拡張メタファイルの描画
+    Call PlayEnhMetaFile(hdc, hEmf, r)
+    Set pic = getPictureObject(hbmp)
+    savePicture pic, fileName
+    SelectObject hdc, hbmpOld
+    DeleteObject hbmp
+    DeleteDC hdc
+    DeleteEnhMetaFile hEmf
+End Sub
+
+' HBITMAPからPictureオブジェクトを作成する
+'引数はBitMapのハンドル
+Private Function getPictureObject(ByVal hbmp As Long) As Object
+
+    Dim iid As GUID     'Globally Unique Identifier型の変数iid
+    Dim pd As PICTDESC  'Picture Descriptor構造体型の変数pd
+    'ビットマップのハンドルが0なら、終了
+    If hbmp = 0 Then Exit Function
+    'GUID型構造体iidのメンバを設定
+    With iid
+        .Data1 = &H20400
+        .Data4(0) = &HC0
+        .Data4(7) = &H46
+    End With
+    'Picture Descriptor構造体を設定
+    With pd
+        .cbSizeofstruct = Len(pd)   'PICTDESC structureのサイズ
+        .picType = PICTYPE_BITMAP   'pictureのタイプ（PICTYPE列挙体より）
+        .hBitmap = hbmp             'ビットマップのハンドル
+    End With
+    'PICDESC構造体に設定した情報を元にピクチャーオブジェクトを作成。
+    'OleCreatePictureIndirect(udtPICTDESC, udtGUID, True, NewPic)
+    OleCreatePictureIndirect pd, iid, 1, getPictureObject
+End Function
+
+'emfファイルをbmpに変換する
+Private Sub emfTobmp(strFileName As String)
+    Dim hbmp As Long
+    Dim hbmpOld As Long
+    Dim hdc As Long, hdcDesktop As Long
+    Dim hEmf As Long '拡張メタファイルのハンドル
+    Dim r As RECT '描画する領域
+    Dim mh As ENHMETAHEADER '取得結果のメタファイルヘッダ
+    Dim emfWidth As Long, emfHeight As Long
+    Dim bmpInfo As BITMAPINFO
+    Dim pic As StdPicture 'Pictureプロパティのデータ型
+    Dim hDIB As Long
+    Dim x As Long
+    Dim y As Long
+    
+    '拡張メタファイルのオープン
+    hEmf = GetEnhMetaFile(strFileName)
+    'ヘッダの取得
+    GetEnhMetaFileHeader hEmf, Len(mh), mh
+    With mh
+        '単位はpixcel
+        'emfWidth = .rclBounds.Right - .rclBounds.Left
+        'emfHeight = .rclBounds.Bottom - .rclBounds.Top
+        '.rclFrame.Right - .rclFrame.Leftが画像のプロパティでサイズとして表示される寸法である
+        '下記計算の結果は、論理サイズと一緒になる
+        emfWidth = (.rclFrame.Right - .rclFrame.Left) * (96 / 25.4) / 100
+        emfHeight = (.rclFrame.Bottom - .rclFrame.Top) * (96 / 25.4) / 100
+    End With
+    hdcDesktop = GetDC(0)
+    hdc = CreateCompatibleDC(hdcDesktop)
+    
+    With bmpInfo.bmiHeader '構造体初期化
+        .biSize = 40
+        .biWidth = emfWidth
+        .biHeight = emfHeight
+        .biPlanes = 1
+        .biBitCount = 24    '24ビット
+        .biCompression = 0  'BI_RGB
+        .biSizeImage = 0    'BI_RGBの時は０
+        .biClrUsed = 0
+    End With
+    
+    hbmp = CreateDIBSection(hdc, bmpInfo, DIB_RGB_COLORS, 0, 0, 0) 'DIB作成
+    hbmpOld = SelectObject(hdc, hbmp)
+    
+    'BMPに変換するとEMFの透過部分が黒になる為、予めBMPのバックを白に塗りつぶす
+    Call SelectObject(hdc, CreatePen(0, 0, RGB(255, 255, 255))) 'ペン(白)
+    Call SelectObject(hdc, GetStockObject(0))                   '塗りつぶし(白)
+    Call Rectangle(hdc, 0, 0, emfWidth, emfHeight)              'Bitmapと同じ大きさの四角形を描く
+    
+    '描画領域の設定
+    r.Left = 0
+    r.Top = 0
+    r.Right = emfWidth
+    r.Bottom = emfHeight
+    
+    '拡張メタファイルの描画
+    Call PlayEnhMetaFile(hdc, hEmf, r)
+    Set pic = getPictureObject(hbmp)
+    savePicture pic, Replace(strFileName, ".emf", ".bmp")
+    SelectObject hdc, hbmpOld
+    DeleteDC hdc
+    DeleteEnhMetaFile hEmf
+End Sub
+
+Public Sub docPageToBMP(trgDoc As Document, caseNo As String, FSO As Object)
+  Dim tmp As WdViewType
+  Dim p As Word.page
+  Dim i As Long
+  Dim saveFileName As String
+  Const adTypeBinary = 1
+  Const adSaveCreateOverWrite = 2
+  
+  i = 1
+  'tmp = ActiveWindow.View.Type
+  'ActiveWindow.View.Type = wdPrintPreview
+  With CreateObject("ADODB.Stream")
+    .Type = adTypeBinary
+    For Each p In ActiveWindow.ActivePane.Pages
+        saveFileName = trgDoc.Path & "\Img\Doc" & caseNo & "_P" & Format(i, "000") & ".emf"
+        .Open
+        .Position = 0
+        .Write p.EnhMetaFileBits
+        .SaveToFile saveFileName, adSaveCreateOverWrite
+        .Close
+        '出力したEMFをBMPに変換
+        Call emfTobmp(saveFileName)
+        'EMFを削除
+        Call FSO.deletefile(saveFileName, True)
+        i = i + 1
+    Next
+  End With
+  'ActiveWindow.View.Type = tmp
+End Sub
+
+'PCが64ビットかを判定
+Private Function is64BitPC() As Boolean
+  Dim ret As Boolean
+  Dim colItems As Object
+  Dim itm As Object
+  
+  Set colItems = CreateObject("WbemScripting.SWbemLocator").ConnectServer.ExecQuery("Select * From Win32_OperatingSystem")
+  For Each itm In colItems
+    If InStr(itm.OSArchitecture, "64") > 0 Then
+      ret = True
+      Exit For
+    End If
+  Next
+  is64BitPC = ret
+End Function
+
