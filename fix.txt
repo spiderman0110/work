@@ -1,0 +1,34 @@
+RT_DiffReport.vbs
+
+Option Explicit
+
+If WScript.Arguments.Count = 0 Then
+	If MsgBox("レポート差分比較を実行します", vbYesNo, "レポート差分比較") = vbNo Then
+		WScript.Quit(True)
+	End If
+End If
+
+Dim WS
+Set WS = CreateObject("WScript.shell")
+
+' Wordの起動
+Dim WORD
+Set WORD = CreateObject("word.application")
+WORD.Visible = True
+
+' Wordファイルを開く
+Dim WordDoc
+Set WordDoc = WORD.documents.Open(WS.CurrentDirectory & "\7_SubScript\DiffReport.docm")
+
+' Word VBA の実行
+WORD.Run "diffReport"
+
+WORD.Quit
+Set WORD = Nothing
+Set WS = Nothing
+
+If WScript.Arguments.Count = 0 Then
+	MsgBox "完了！"
+End If
+
+WScript.Quit(True)
